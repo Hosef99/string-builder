@@ -25,8 +25,6 @@ void sb_destroy(StringBuilder *sb) {
 char *sb_to_string(StringBuilder *sb) {
     char *result = realloc(sb->buffer, sb->length + 1);
 
-    result[sb->length] = '\0';
-
     sb->buffer = NULL;
     sb->length = 0;
     sb->capacity = 0;
@@ -36,8 +34,7 @@ char *sb_to_string(StringBuilder *sb) {
 
 char *sb_to_string_copy(StringBuilder *sb) {
     char *result = malloc(sb->length + 1);
-    strncpy(result, sb->buffer, sb->length);
-    result[sb->length] = '\0';
+    strncpy(result, sb->buffer, sb->length + 1);
 
     return result;
 }
@@ -45,7 +42,7 @@ char *sb_to_string_copy(StringBuilder *sb) {
 void sb_append_char(StringBuilder *sb, char ch) {
     if (!sb) return;
 
-    if (sb->length + 1 >= sb->capacity) {
+    if (sb->length + 2 >= sb->capacity) {
         size_t new_capacity = sb->capacity ? sb->capacity * GROWTH_RATE : 16;
 
         char *temp_buffer = realloc(sb->buffer, new_capacity);
@@ -57,6 +54,7 @@ void sb_append_char(StringBuilder *sb, char ch) {
     }
 
     sb->buffer[sb->length++] = ch;
+    sb->buffer[sb->length] = '\0';
 }
 
 void sb_append_cstr(StringBuilder *sb, const char *str) {
@@ -65,9 +63,9 @@ void sb_append_cstr(StringBuilder *sb, const char *str) {
     size_t string_length = strlen(str);
     if (string_length == 0) return;
 
-    if (sb->length + string_length >= sb->capacity) {
+    if (sb->length + string_length + 1 > sb->capacity) {
         size_t new_capacity = sb->capacity ? sb->capacity : 16;
-        while (sb->length + string_length >= new_capacity) {
+        while (sb->length + string_length + 1 > new_capacity) {
             new_capacity *= GROWTH_RATE;
         }
 
@@ -80,16 +78,17 @@ void sb_append_cstr(StringBuilder *sb, const char *str) {
 
     memcpy(sb->buffer + sb->length, str, string_length);
     sb->length += string_length;
+    sb->buffer[sb->length] = '\0';
 }
 
 void sb_join(StringBuilder *sb_dest, StringBuilder *sb_src) {
     if (!sb_dest || !sb_src) return;
     if (sb_src->length == 0) return;
 
-    if (sb_dest->length + sb_src->length >= sb_dest->capacity) {
+    if (sb_dest->length + sb_src->length + 1 >= sb_dest->capacity) {
         size_t new_capacity = sb_dest->capacity ? sb_dest->capacity : 16;
 
-        while (sb_dest->length + sb_src->length >= new_capacity) {
+        while (sb_dest->length + sb_src->length + 1 >= new_capacity) {
             new_capacity *= GROWTH_RATE;
         }
 
@@ -102,50 +101,27 @@ void sb_join(StringBuilder *sb_dest, StringBuilder *sb_src) {
 
     memcpy(sb_dest->buffer + sb_dest->length, sb_src->buffer, sb_src->length);
     sb_dest->length += sb_src->length;
+    sb_dest->buffer[sb_dest->length] = '\0';
 }
 
 void sb_append_format(StringBuilder *sb, const char *format, ...) {
-    // do it like printf, please support %d, %g, %s, %c
     if (!sb) return;
-    va_list va;
-    va_start(va, format);
-    while(*format) {
-        if (*format == '%') {
-            format++;
-            char *str_result;
-            char char_result;
-            switch (*format++) {
-                case 's': {
-                    str_result = va_arg(va, char *);
-                    sb_append_cstr(sb, str_result);
-                    break;
-                }
-                case 'c': {
-                    char_result = (char)va_arg(va, int);
-                    sb_append_char(sb, char_result);
-                    break;
-                }
-                case 'd': {
-                    int num = va_arg(va, int);
-                    char buffer[1024];
-                    snprintf(buffer, sizeof(buffer), "%d", num);
-                    sb_append_cstr(sb, buffer);
-                    break;
-                }
-                case 'g': {
-                    double num = va_arg(va, double);
-                    char buffer[1024];
-                    snprintf(buffer, sizeof(buffer), "%g", num);
-                    sb_append_cstr(sb, buffer);
-                    break;
-                }
-                default: break;
-            }
-            continue;
-        }
-        sb_append_char(sb, *(format++));
-    }
-    va_end(va);
+    va_list args;
+
+    va_start(args, format);
+    int needed = vsnprintf(NULL, 0, format, args);
+    va_end(args);
+
+    if (needed < 0) return;
+
+    char *buffer = malloc(needed + 1);
+
+    va_start(args, format);
+    vsnprintf(buffer, needed + 1, format, args);
+    va_end(args);
+
+    sb_append_cstr(sb, buffer);
+    free(buffer);
 }
 
 void sb_append_json_escaped(StringBuilder *sb, const char *str) {
@@ -195,7 +171,7 @@ void sb_shrink_to_fit(StringBuilder *sb) {
     if (!sb) return;
     if (sb->length == sb->capacity) return;
 
-    char *temp_buffer = realloc(sb->buffer, sb->length);
+    char *temp_buffer = realloc(sb->buffer, sb->length + 1);
     if (!temp_buffer) return;
 
     sb->buffer = temp_buffer;
@@ -243,10 +219,10 @@ void sb_insert(StringBuilder *sb, size_t pos, const char *str) {
 
     size_t final_length = sb->length + string_length;
 
-    if (final_length > sb->capacity) {
+    if (final_length + 1 > sb->capacity) {
         size_t new_capacity = sb->capacity ? sb->capacity : 16;
 
-        while (final_length > new_capacity) {
+        while (final_length + 1 > new_capacity) {
             new_capacity *= GROWTH_RATE;
         }
 
@@ -261,6 +237,7 @@ void sb_insert(StringBuilder *sb, size_t pos, const char *str) {
     
     memcpy(sb->buffer + pos, str, string_length);
     sb->length += string_length;
+    sb->buffer[sb->length] = '\0';
 }
 
 void sb_delete(StringBuilder *sb, size_t pos, size_t len) {
@@ -272,11 +249,13 @@ void sb_delete(StringBuilder *sb, size_t pos, size_t len) {
 
     sb->length -= len;
     memset(sb->buffer + sb->length, 0, len);
+    sb->buffer[sb->length] = '\0';
 }
 
 int sb_equal(StringBuilder *sb1, StringBuilder *sb2) {
-    if (!sb1 || !sb2) return;
+    if (!sb1 || !sb2) return 0;
 
-    if (sb1->length != sb2->length);
+    if (sb1->length != sb2->length) return 0;
 
+    return strcmp(sb1->buffer, sb2->buffer) == 0;
 }
