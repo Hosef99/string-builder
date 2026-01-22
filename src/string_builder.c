@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
+
 #include "string_builder.h"
 
 #define GROWTH_RATE 2
@@ -50,7 +52,6 @@ void sb_append_char(StringBuilder *sb, char ch) {
         if (!temp_buffer) {
             return;
         }
-        printf("Allocated with size %ld\n", new_capacity);
         sb->buffer = temp_buffer;
         sb->capacity = new_capacity;
     }
@@ -103,6 +104,179 @@ void sb_join(StringBuilder *sb_dest, StringBuilder *sb_src) {
     sb_dest->length += sb_src->length;
 }
 
+void sb_append_format(StringBuilder *sb, const char *format, ...) {
+    // do it like printf, please support %d, %g, %s, %c
+    if (!sb) return;
+    va_list va;
+    va_start(va, format);
+    while(*format) {
+        if (*format == '%') {
+            format++;
+            char *str_result;
+            char char_result;
+            switch (*format++) {
+                case 's': {
+                    str_result = va_arg(va, char *);
+                    sb_append_cstr(sb, str_result);
+                    break;
+                }
+                case 'c': {
+                    char_result = (char)va_arg(va, int);
+                    sb_append_char(sb, char_result);
+                    break;
+                }
+                case 'd': {
+                    int num = va_arg(va, int);
+                    char buffer[1024];
+                    snprintf(buffer, sizeof(buffer), "%d", num);
+                    sb_append_cstr(sb, buffer);
+                    break;
+                }
+                case 'g': {
+                    double num = va_arg(va, double);
+                    char buffer[1024];
+                    snprintf(buffer, sizeof(buffer), "%g", num);
+                    sb_append_cstr(sb, buffer);
+                    break;
+                }
+                default: break;
+            }
+            continue;
+        }
+        sb_append_char(sb, *(format++));
+    }
+    va_end(va);
+}
+
+void sb_append_json_escaped(StringBuilder *sb, const char *str) {
+    if (!sb) return;
+
+    size_t string_length = strlen(str);
+    char *buffer = malloc(string_length);
+    int pos = 0;
+    while (*str) {
+        if (*str == '\\') {
+            str++;
+            switch (*str) {
+                case '\\':
+                    buffer[pos++] = '\\';
+                    str++;
+                    break;
+                case '\'':
+                    buffer[pos++] = '\'';
+                    str++;
+                    break;
+                case '\"':
+                    buffer[pos++] = '\"';
+                    str++;
+                    break;
+                case 'n': 
+                    buffer[pos++] = '\n';
+                    str++;
+                    break;
+                default: {
+                    buffer[pos++] = '\\';
+                    buffer[pos++] = *str++;
+                    break;
+                }
+            }
+            continue;
+        }
+        buffer[pos++] = *str++;
+    }
+    buffer[pos] = '\0';
+    
+    sb_append_cstr(sb, buffer);
+
+    free(buffer);
+}
+
+void sb_shrink_to_fit(StringBuilder *sb) {
+    if (!sb) return;
+    if (sb->length == sb->capacity) return;
+
+    char *temp_buffer = realloc(sb->buffer, sb->length);
+    if (!temp_buffer) return;
+
+    sb->buffer = temp_buffer;
+}
+
+void sb_clear(StringBuilder *sb) {
+    if (!sb) return;
+    free(sb->buffer);
+    sb->buffer = NULL;
+    sb->length = 0;
+    sb->capacity = 0;
+}
+
+size_t sb_length(const StringBuilder *sb) {
+    if (!sb) return -1;
+    return sb->length;
+}
+
+int sb_is_empty(const StringBuilder *sb) {
+    if (!sb) return -1;
+    return sb->length == 0;
+}
+
 const char *sb_peek(const StringBuilder *sb) {
+    if (!sb) return NULL;
     return sb->buffer;
+}
+
+void sb_set_char(StringBuilder *sb, size_t index, char ch) {
+    if (!sb) return;
+
+    if (index >= sb->length) return;
+
+    sb->buffer[index] = ch;
+}
+
+void sb_insert(StringBuilder *sb, size_t pos, const char *str) {
+    if (!sb) return;
+    
+    if (pos > sb->length) return;
+
+    size_t string_length = strlen(str);
+
+    if (string_length == 0) return;
+
+    size_t final_length = sb->length + string_length;
+
+    if (final_length > sb->capacity) {
+        size_t new_capacity = sb->capacity ? sb->capacity : 16;
+
+        while (final_length > new_capacity) {
+            new_capacity *= GROWTH_RATE;
+        }
+
+        char *temp_buffer = realloc(sb->buffer, new_capacity);
+        if (!temp_buffer) return;
+
+        sb->buffer = temp_buffer;
+        sb->capacity = new_capacity;
+    }
+
+    memmove(sb->buffer + pos + string_length, sb->buffer + pos, string_length);
+    
+    memcpy(sb->buffer + pos, str, string_length);
+    sb->length += string_length;
+}
+
+void sb_delete(StringBuilder *sb, size_t pos, size_t len) {
+    if (!sb) return;
+
+    if (pos + len > sb->length) return;
+
+    memmove(sb->buffer + pos, sb->buffer + pos + len, sb->length - pos - len);
+
+    sb->length -= len;
+    memset(sb->buffer + sb->length, 0, len);
+}
+
+int sb_equal(StringBuilder *sb1, StringBuilder *sb2) {
+    if (!sb1 || !sb2) return;
+
+    if (sb1->length != sb2->length);
+
 }

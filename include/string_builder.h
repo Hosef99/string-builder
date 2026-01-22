@@ -30,4 +30,6 @@ void sb_set_char(StringBuilder *sb, size_t index, char ch);
 void sb_insert(StringBuilder *sb, size_t pos, const char *str);
 void sb_delete(StringBuilder *sb, size_t pos, size_t len);
 
+void sb_cmp(StringBuilder *sb, const char *str);
+
 #endif
