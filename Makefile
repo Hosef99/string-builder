@@ -1,25 +1,13 @@
-CC := gcc
-CFLAGS := -g -Wextra -Wall
-CPPFLAGS := -Iinclude
-
-SRC := $(wildcard src/*.c)
-OBJ := $(patsubst src/%.c,build/%.o,$(SRC))
-
-TARGET := sb
+TARGET = libstringbuilder.a
+OBJS = string_builder.o
 
 all: $(TARGET)
 
-$(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $(TARGET)
+$(TARGET): $(OBJS)
+	ar rcs $@ $(OBJS)
 
-build/%.o: src/%.c | build
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $^ -o $@
-	
-build: 
-	mkdir -p build
+%.o: src/%.c include/%.h
+	$(CC) -I./include -c $< -o $@
 
 clean:
-	rm -rf build $(TARGET)
-
-run: $(TARGET)
-	./$(TARGET)
+	rm -f $(OBJS) $(TARGET)
