@@ -81,6 +81,29 @@ void sb_append_cstr(StringBuilder *sb, const char *str) {
     sb->buffer[sb->length] = '\0';
 }
 
+void sb_append_cstr_len(StringBuilder *sb, const char *str, size_t len) {
+    if (!sb || !str || len == 0) return;
+
+    if (strlen(str) < len) return;
+
+    if (sb->length + len + 1 > sb->capacity) {
+        size_t new_capacity = sb->capacity ? sb->capacity : 16;
+        while (sb->length + len + 1 > new_capacity) {
+            new_capacity *= GROWTH_RATE;
+        }
+
+        char *temp_buffer = realloc(sb->buffer, new_capacity); 
+        if (!temp_buffer) return;
+
+        sb->buffer = temp_buffer;
+        sb->capacity = new_capacity;
+    }
+
+    memcpy(sb->buffer + sb->length, str, len);
+    sb->length += len;
+    sb->buffer[sb->length] = '\0';
+}
+
 void sb_join(StringBuilder *sb_dest, StringBuilder *sb_src) {
     if (!sb_dest || !sb_src) return;
     if (sb_src->length == 0) return;
@@ -124,7 +147,7 @@ void sb_append_format(StringBuilder *sb, const char *format, ...) {
     free(buffer);
 }
 
-void sb_append_json_escaped(StringBuilder *sb, const char *str) {
+void sb_append_cstr_escaped(StringBuilder *sb, const char *str) {
     if (!sb) return;
 
     size_t string_length = strlen(str);
@@ -167,7 +190,7 @@ void sb_append_json_escaped(StringBuilder *sb, const char *str) {
     free(buffer);
 }
 
-void sb_append_json_escaped_len(StringBuilder *sb, const char *str, size_t len) {
+void sb_append_cstr_escaped_len(StringBuilder *sb, const char *str, size_t len) {
     if (!sb) return;
 
     char *buffer = malloc(len);
