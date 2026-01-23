@@ -218,10 +218,10 @@ void sb_append_cstr_escaped_len(StringBuilder *sb, const char *str, size_t len) 
                 default: {
                     buffer[pos++] = '\\';
                     buffer[pos++] = *str++;
-                    len--;
                     break;
                 }
             }
+            len--;
             continue;
         }
         buffer[pos++] = *str++;
