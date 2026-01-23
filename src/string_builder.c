@@ -167,6 +167,49 @@ void sb_append_json_escaped(StringBuilder *sb, const char *str) {
     free(buffer);
 }
 
+void sb_append_json_escaped_len(StringBuilder *sb, const char *str, size_t len) {
+    if (!sb) return;
+
+    char *buffer = malloc(len);
+    int pos = 0;
+    while (*str && len--) {
+        if (*str == '\\') {
+            str++;
+            switch (*str) {
+                case '\\':
+                    buffer[pos++] = '\\';
+                    str++;
+                    break;
+                case '\'':
+                    buffer[pos++] = '\'';
+                    str++;
+                    break;
+                case '\"':
+                    buffer[pos++] = '\"';
+                    str++;
+                    break;
+                case 'n': 
+                    buffer[pos++] = '\n';
+                    str++;
+                    break;
+                default: {
+                    buffer[pos++] = '\\';
+                    buffer[pos++] = *str++;
+                    break;
+                }
+            }
+            len--;
+            continue;
+        }
+        buffer[pos++] = *str++;
+    }
+    buffer[pos] = '\0';
+    
+    sb_append_cstr(sb, buffer);
+
+    free(buffer);
+}
+
 void sb_shrink_to_fit(StringBuilder *sb) {
     if (!sb) return;
     if (sb->length == sb->capacity) return;
