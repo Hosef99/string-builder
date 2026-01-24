@@ -151,7 +151,7 @@ void sb_append_cstr_escaped(StringBuilder *sb, const char *str) {
     if (!sb) return;
 
     size_t string_length = strlen(str);
-    char *buffer = malloc(string_length);
+    char *buffer = malloc(string_length + 1);
     int pos = 0;
     while (*str) {
         if (*str == '\\') {
@@ -193,7 +193,7 @@ void sb_append_cstr_escaped(StringBuilder *sb, const char *str) {
 void sb_append_cstr_escaped_len(StringBuilder *sb, const char *str, size_t len) {
     if (!sb) return;
 
-    char *buffer = malloc(len);
+    char *buffer = malloc(len + 1);
     int pos = 0;
     while (*str && len--) {
         if (*str == '\\') {
