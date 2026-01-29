@@ -11,6 +11,9 @@ TEST_SRC = test/main.c
 
 all: $(TARGET)
 
+debug: CFLAGS += -g -DSB_DEBUG
+debug: $(TARGET)
+
 $(TARGET): $(OBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)
 

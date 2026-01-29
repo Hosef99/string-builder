@@ -3,11 +3,13 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include "error.h"
 #include "string_builder.h"
 
 #define GROWTH_RATE 2
 
 StringBuilder *sb_create(size_t initial_capacity) {
+    if (initial_capacity <= 0) initial_capacity = 16;
     StringBuilder *sb = malloc(sizeof(StringBuilder));
     sb->buffer = malloc(initial_capacity);
     sb->length = 0;
@@ -16,15 +18,17 @@ StringBuilder *sb_create(size_t initial_capacity) {
 }
 
 void sb_destroy(StringBuilder *sb) {
-    if (!sb) return; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
 
     free(sb->buffer);
     free(sb);
 }
 
 char *sb_to_string(StringBuilder *sb) {
-    if (!sb) return NULL; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
     char *result = realloc(sb->buffer, sb->length + 1);
+    
+    if (!result) HANDLE_ERROR("Memory allocation failed");
 
     sb->buffer = NULL;
     sb->length = 0;
@@ -34,23 +38,24 @@ char *sb_to_string(StringBuilder *sb) {
 }
 
 char *sb_to_string_copy(StringBuilder *sb) {
-    if (!sb) return NULL; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
     char *result = malloc(sb->length + 1);
+
+    if (!result) HANDLE_ERROR("Memory allocation failed");
+
     strncpy(result, sb->buffer, sb->length + 1);
 
     return result;
 }
 
 void sb_append_char(StringBuilder *sb, char ch) {
-    if (!sb) return; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
 
     if (sb->length + 2 >= sb->capacity) {
         size_t new_capacity = sb->capacity ? sb->capacity * GROWTH_RATE : 16;
 
         char *temp_buffer = realloc(sb->buffer, new_capacity);
-        if (!temp_buffer) {
-            return;
-        }
+        if (!temp_buffer) HANDLE_ERROR("Memory allocation failed");
         sb->buffer = temp_buffer;
         sb->capacity = new_capacity;
     }
@@ -60,7 +65,8 @@ void sb_append_char(StringBuilder *sb, char ch) {
 }
 
 void sb_append_cstr(StringBuilder *sb, const char *str) {
-    if (!sb || !str) return; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
+    if (!str) HANDLE_ERROR("str is NULL");
 
     size_t string_length = strlen(str);
     if (string_length == 0) return;
@@ -72,7 +78,7 @@ void sb_append_cstr(StringBuilder *sb, const char *str) {
         }
 
         char *temp_buffer = realloc(sb->buffer, new_capacity); 
-        if (!temp_buffer) return;
+        if (!temp_buffer) HANDLE_ERROR("Memory allocation failed");
 
         sb->buffer = temp_buffer;
         sb->capacity = new_capacity;
@@ -84,9 +90,12 @@ void sb_append_cstr(StringBuilder *sb, const char *str) {
 }
 
 void sb_append_cstr_len(StringBuilder *sb, const char *str, size_t len) {
-    if (!sb || !str || len == 0) return; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
+    if (!str) HANDLE_ERROR("str is NULL");
+    if (strlen(str) < len) HANDLE_ERROR("len is out of bounds");
 
-    if (strlen(str) < len) return;
+    if (len == 0) return;
+
 
     if (sb->length + len + 1 > sb->capacity) {
         size_t new_capacity = sb->capacity ? sb->capacity : 16;
@@ -95,7 +104,7 @@ void sb_append_cstr_len(StringBuilder *sb, const char *str, size_t len) {
         }
 
         char *temp_buffer = realloc(sb->buffer, new_capacity); 
-        if (!temp_buffer) return;
+        if (!temp_buffer) HANDLE_ERROR("Memory allocation failed");
 
         sb->buffer = temp_buffer;
         sb->capacity = new_capacity;
@@ -107,7 +116,8 @@ void sb_append_cstr_len(StringBuilder *sb, const char *str, size_t len) {
 }
 
 void sb_join(StringBuilder *sb_dest, StringBuilder *sb_src) {
-    if (!sb_dest || !sb_src) return; // ERROR
+    if (!sb_dest) HANDLE_ERROR("sb_dest is NULL");
+    if (!sb_src) HANDLE_ERROR("sb_src is NULL");
     if (sb_src->length == 0) return;
 
     if (sb_dest->length + sb_src->length + 1 >= sb_dest->capacity) {
@@ -118,7 +128,7 @@ void sb_join(StringBuilder *sb_dest, StringBuilder *sb_src) {
         }
 
         char *temp_buffer = realloc(sb_dest->buffer, new_capacity); 
-        if (!temp_buffer) return;
+        if (!temp_buffer) HANDLE_ERROR("Memory allocation failed");
 
         sb_dest->buffer = temp_buffer;
         sb_dest->capacity = new_capacity;
@@ -130,8 +140,10 @@ void sb_join(StringBuilder *sb_dest, StringBuilder *sb_src) {
 }
 
 void sb_append_format(StringBuilder *sb, const char *format, ...) {
-    if (!sb) return; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
     va_list args;
+
+    // ERROR: string format errors can exist here
 
     va_start(args, format);
     int needed = vsnprintf(NULL, 0, format, args);
@@ -140,6 +152,8 @@ void sb_append_format(StringBuilder *sb, const char *format, ...) {
     if (needed < 0) return;
 
     char *buffer = malloc(needed + 1);
+
+    if (!buffer) HANDLE_ERROR("Memory allocation failed");
 
     va_start(args, format);
     vsnprintf(buffer, needed + 1, format, args);
@@ -150,10 +164,11 @@ void sb_append_format(StringBuilder *sb, const char *format, ...) {
 }
 
 void sb_append_cstr_escaped(StringBuilder *sb, const char *str) {
-    if (!sb) return; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
 
     size_t string_length = strlen(str);
     char *buffer = malloc(string_length + 1);
+    if (!buffer) HANDLE_ERROR("Memory allocation failed");
     int pos = 0;
     while (*str) {
         if (*str == '\\') {
@@ -193,9 +208,10 @@ void sb_append_cstr_escaped(StringBuilder *sb, const char *str) {
 }
 
 void sb_append_cstr_escaped_len(StringBuilder *sb, const char *str, size_t len) {
-    if (!sb) return; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
 
     char *buffer = malloc(len + 1);
+    if (!buffer) HANDLE_ERROR("Memory allocation failed");
     int pos = 0;
     while (*str && len--) {
         if (*str == '\\') {
@@ -236,7 +252,7 @@ void sb_append_cstr_escaped_len(StringBuilder *sb, const char *str, size_t len) 
 }
 
 void sb_shrink_to_fit(StringBuilder *sb) {
-    if (!sb) return; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
     if (sb->length == sb->capacity) return;
 
     char *temp_buffer = realloc(sb->buffer, sb->length + 1);
@@ -246,7 +262,7 @@ void sb_shrink_to_fit(StringBuilder *sb) {
 }
 
 void sb_clear(StringBuilder *sb) {
-    if (!sb) return;
+    if (!sb) HANDLE_ERROR("sb is NULL");
     free(sb->buffer);
     sb->buffer = NULL;
     sb->length = 0;
@@ -254,32 +270,32 @@ void sb_clear(StringBuilder *sb) {
 }
 
 size_t sb_length(const StringBuilder *sb) {
-    if (!sb) return -1;
+    if (!sb) HANDLE_ERROR("sb is NULL");
     return sb->length;
 }
 
 int sb_is_empty(const StringBuilder *sb) {
-    if (!sb) return -1;
+    if (!sb) HANDLE_ERROR("sb is NULL");
     return sb->length == 0;
 }
 
 const char *sb_peek(const StringBuilder *sb) {
-    if (!sb) return NULL;
+    if (!sb) HANDLE_ERROR("sb is NULL");
     return sb->buffer;
 }
 
 void sb_set_char(StringBuilder *sb, size_t index, char ch) {
-    if (!sb) return; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
 
-    if (index >= sb->length) return;
+    if (index >= sb->length) HANDLE_ERROR("index is out of bounds");
 
     sb->buffer[index] = ch;
 }
 
 void sb_insert(StringBuilder *sb, size_t pos, const char *str) {
-    if (!sb) return; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL");
     
-    if (pos > sb->length) return;
+    if (pos > sb->length) HANDLE_ERROR("pos is out of bounds");
 
     size_t string_length = strlen(str);
 
@@ -309,9 +325,9 @@ void sb_insert(StringBuilder *sb, size_t pos, const char *str) {
 }
 
 void sb_delete(StringBuilder *sb, size_t pos, size_t len) {
-    if (!sb) return; // ERROR
+    if (!sb) HANDLE_ERROR("sb is NULL"); // ERROR
 
-    if (pos + len > sb->length) return;
+    if (pos + len > sb->length) HANDLE_ERROR("deleted section is out of bounds");
 
     memmove(sb->buffer + pos, sb->buffer + pos + len, sb->length - pos - len);
 
@@ -321,7 +337,8 @@ void sb_delete(StringBuilder *sb, size_t pos, size_t len) {
 }
 
 int sb_equal(StringBuilder *sb1, StringBuilder *sb2) {
-    if (!sb1 || !sb2) return 0;
+    if (!sb1) HANDLE_ERROR("sb1 is NULL");
+    if (!sb2) HANDLE_ERROR("sb2 is NULL");
 
     if (sb1->length != sb2->length) return 0;
 
