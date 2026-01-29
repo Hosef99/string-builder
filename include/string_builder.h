@@ -20,7 +20,7 @@ void sb_append_cstr_escaped_len(StringBuilder *sb, const char *str, size_t len);
 
 void sb_join(StringBuilder *sb_dest, StringBuilder *sb_src);
 
-void sb_append_format(StringBuilder *sb, const char *format, ...); // do it like printf, please support %d, %f, %s, %c, %x
+void sb_append_format(StringBuilder *sb, const char *format, ...);
 
 void sb_shrink_to_fit(StringBuilder *sb);
 void sb_clear(StringBuilder *sb);  // Reset length to 0

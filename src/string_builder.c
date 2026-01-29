@@ -16,13 +16,14 @@ StringBuilder *sb_create(size_t initial_capacity) {
 }
 
 void sb_destroy(StringBuilder *sb) {
-    if (!sb) return;
+    if (!sb) return; // ERROR
 
     free(sb->buffer);
     free(sb);
 }
 
 char *sb_to_string(StringBuilder *sb) {
+    if (!sb) return NULL; // ERROR
     char *result = realloc(sb->buffer, sb->length + 1);
 
     sb->buffer = NULL;
@@ -33,6 +34,7 @@ char *sb_to_string(StringBuilder *sb) {
 }
 
 char *sb_to_string_copy(StringBuilder *sb) {
+    if (!sb) return NULL; // ERROR
     char *result = malloc(sb->length + 1);
     strncpy(result, sb->buffer, sb->length + 1);
 
@@ -40,7 +42,7 @@ char *sb_to_string_copy(StringBuilder *sb) {
 }
 
 void sb_append_char(StringBuilder *sb, char ch) {
-    if (!sb) return;
+    if (!sb) return; // ERROR
 
     if (sb->length + 2 >= sb->capacity) {
         size_t new_capacity = sb->capacity ? sb->capacity * GROWTH_RATE : 16;
@@ -58,7 +60,7 @@ void sb_append_char(StringBuilder *sb, char ch) {
 }
 
 void sb_append_cstr(StringBuilder *sb, const char *str) {
-    if (!sb || !str) return;
+    if (!sb || !str) return; // ERROR
 
     size_t string_length = strlen(str);
     if (string_length == 0) return;
@@ -82,7 +84,7 @@ void sb_append_cstr(StringBuilder *sb, const char *str) {
 }
 
 void sb_append_cstr_len(StringBuilder *sb, const char *str, size_t len) {
-    if (!sb || !str || len == 0) return;
+    if (!sb || !str || len == 0) return; // ERROR
 
     if (strlen(str) < len) return;
 
@@ -105,7 +107,7 @@ void sb_append_cstr_len(StringBuilder *sb, const char *str, size_t len) {
 }
 
 void sb_join(StringBuilder *sb_dest, StringBuilder *sb_src) {
-    if (!sb_dest || !sb_src) return;
+    if (!sb_dest || !sb_src) return; // ERROR
     if (sb_src->length == 0) return;
 
     if (sb_dest->length + sb_src->length + 1 >= sb_dest->capacity) {
@@ -128,7 +130,7 @@ void sb_join(StringBuilder *sb_dest, StringBuilder *sb_src) {
 }
 
 void sb_append_format(StringBuilder *sb, const char *format, ...) {
-    if (!sb) return;
+    if (!sb) return; // ERROR
     va_list args;
 
     va_start(args, format);
@@ -148,7 +150,7 @@ void sb_append_format(StringBuilder *sb, const char *format, ...) {
 }
 
 void sb_append_cstr_escaped(StringBuilder *sb, const char *str) {
-    if (!sb) return;
+    if (!sb) return; // ERROR
 
     size_t string_length = strlen(str);
     char *buffer = malloc(string_length + 1);
@@ -191,7 +193,7 @@ void sb_append_cstr_escaped(StringBuilder *sb, const char *str) {
 }
 
 void sb_append_cstr_escaped_len(StringBuilder *sb, const char *str, size_t len) {
-    if (!sb) return;
+    if (!sb) return; // ERROR
 
     char *buffer = malloc(len + 1);
     int pos = 0;
@@ -234,7 +236,7 @@ void sb_append_cstr_escaped_len(StringBuilder *sb, const char *str, size_t len) 
 }
 
 void sb_shrink_to_fit(StringBuilder *sb) {
-    if (!sb) return;
+    if (!sb) return; // ERROR
     if (sb->length == sb->capacity) return;
 
     char *temp_buffer = realloc(sb->buffer, sb->length + 1);
@@ -267,7 +269,7 @@ const char *sb_peek(const StringBuilder *sb) {
 }
 
 void sb_set_char(StringBuilder *sb, size_t index, char ch) {
-    if (!sb) return;
+    if (!sb) return; // ERROR
 
     if (index >= sb->length) return;
 
@@ -275,7 +277,7 @@ void sb_set_char(StringBuilder *sb, size_t index, char ch) {
 }
 
 void sb_insert(StringBuilder *sb, size_t pos, const char *str) {
-    if (!sb) return;
+    if (!sb) return; // ERROR
     
     if (pos > sb->length) return;
 
@@ -307,7 +309,7 @@ void sb_insert(StringBuilder *sb, size_t pos, const char *str) {
 }
 
 void sb_delete(StringBuilder *sb, size_t pos, size_t len) {
-    if (!sb) return;
+    if (!sb) return; // ERROR
 
     if (pos + len > sb->length) return;
 
